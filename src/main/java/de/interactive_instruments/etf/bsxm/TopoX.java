@@ -51,7 +51,7 @@ import de.interactive_instruments.properties.PropertyUtils;
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-public class TopoX {
+public class TopoX implements Externalizable {
 
 	// Used to check if a name already exists and to avoid file name conflicts.
 	private final Set<String> themeNames = new HashSet();
@@ -141,7 +141,8 @@ public class TopoX {
 
 			final File errorOutputFile = new File(errorOutputDir, themeName + ".xml");
 			final XMLStreamWriter streamWriter = xof.createXMLStreamWriter(new FileOutputStream(errorOutputFile), "UTF-8");
-			final TopologyErrorXmlWriter topologyErrorCollector = new TopologyErrorXmlWriter(themeName, streamWriter);
+			final TopologyErrorXmlWriter topologyErrorCollector = new TopologyErrorXmlWriter(themeName, streamWriter,
+					errorOutputFile);
 			final TopologyBuilder topologyBuilder = new TopologyBuilder(themeName, topologyErrorCollector, initialEdgeCapacity);
 			topologyErrorCollector.init();
 
@@ -533,6 +534,24 @@ public class TopoX {
 		return compress(
 				makeCompressedNodeIndex(dbIndex, node.pre() - this.currentObjectPre),
 				node.pre());
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeObject(themeNames);
+		out.writeObject(themes);
+		out.writeObject(boundaries);
+		out.writeUTF(dbnamePrefix);
+		out.writeInt(dbNameLength);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.themeNames.addAll((Set) in.readObject());
+		this.themes.addAll((List) in.readObject());
+		this.boundaries.addAll((List) in.readObject());
+		this.dbnamePrefix = in.readUTF();
+		this.dbNameLength = in.readInt();
 	}
 
 }

@@ -15,13 +15,18 @@
  */
 package de.interactive_instruments.etf.bsxm.topox;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  * A parser for direct positions of geometric objects that generates
  * hashes for the input data
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-class HashingPosListParser implements PosListParser {
+class HashingPosListParser implements PosListParser, Externalizable {
 
 	private double previousOrdinate;
 	private boolean threeDCoordinates = false;
@@ -332,5 +337,15 @@ class HashingPosListParser implements PosListParser {
 		geoTypeHandlerStrategies[0].nextGeometricObject();
 		geoTypeHandlerStrategies[1].nextGeometricObject();
 		geoTypeHandlerStrategies[2].nextGeometricObject();
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeDouble(previousOrdinate);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.previousOrdinate = in.readDouble();
 	}
 }

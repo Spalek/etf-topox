@@ -18,9 +18,12 @@ package de.interactive_instruments.etf.bsxm.topox;
 import static de.interactive_instruments.etf.bsxm.topox.TopologyBuilder.*;
 import static java.lang.Math.abs;
 
+import java.io.Externalizable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 
 import de.interactive_instruments.SUtils;
@@ -31,7 +34,7 @@ import gnu.trove.TIntArrayList;
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-class TopologyStore implements Topology, TopologyMXBean {
+class TopologyStore implements Topology, TopologyMXBean, Externalizable {
 
 	private final class FlyweightEdge implements Topology.Edge {
 		private final int edgeIndex;
@@ -158,6 +161,8 @@ class TopologyStore implements Topology, TopologyMXBean {
 	}
 
 	private TopologyBuilder builder;
+
+	public TopologyStore() {}
 
 	public TopologyStore(final TopologyBuilder builder) {
 		this.builder = builder;
@@ -475,5 +480,15 @@ class TopologyStore implements Topology, TopologyMXBean {
 			writer.append(endlSeperator);
 		}
 		writer.flush();
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeObject(builder);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.builder = (TopologyBuilder) in.readObject();
 	}
 }

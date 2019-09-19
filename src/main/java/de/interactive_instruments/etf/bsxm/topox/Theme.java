@@ -18,6 +18,13 @@ package de.interactive_instruments.etf.bsxm.topox;
 import static de.interactive_instruments.etf.bsxm.topox.TopologyErrorType.FREE_STANDING_SURFACE;
 import static de.interactive_instruments.etf.bsxm.topox.TopologyErrorType.HOLE_EMPTY_INTERIOR;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.List;
+import java.util.Set;
+
 /**
  * The Theme object bundles all objects that are used to
  * create topological information for one or multiple Features,
@@ -26,16 +33,18 @@ import static de.interactive_instruments.etf.bsxm.topox.TopologyErrorType.HOLE_E
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-public class Theme {
+public class Theme implements Externalizable {
 
-	public final String name;
-	public final TopologyErrorCollector topologyErrorCollector;
-	public final String errorFile;
-	public final GeoJsonWriter geoJsonWriter;
-	public final PosListParser parser;
+	public String name;
+	public TopologyErrorCollector topologyErrorCollector;
+	public String errorFile;
+	public GeoJsonWriter geoJsonWriter;
+	public PosListParser parser;
 
-	final Topology topology;
-	private final TopologyBuilder topologyBuilder;
+	Topology topology;
+	private TopologyBuilder topologyBuilder;
+
+	public Theme() {}
 
 	public Theme(final String name, final TopologyErrorCollector topologyErrorCollector, final String errorFile,
 			final GeoJsonWriter geoJsonWriter, final TopologyBuilder topologyBuilder) {
@@ -85,5 +94,25 @@ public class Theme {
 	@Override
 	public String toString() {
 		return topologyBuilder.toString();
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeUTF(name);
+		out.writeObject(topologyErrorCollector);
+		out.writeUTF(errorFile);
+		out.writeObject(geoJsonWriter);
+		out.writeObject(topology);
+		out.writeObject(topologyBuilder);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.name = in.readUTF();
+		this.topologyErrorCollector = (TopologyErrorCollector) in.readObject();
+		this.errorFile = in.readUTF();
+		this.geoJsonWriter = (GeoJsonWriter) in.readObject();
+		this.topology = (Topology) in.readObject();
+		this.topologyBuilder = (TopologyBuilder) in.readObject();
 	}
 }

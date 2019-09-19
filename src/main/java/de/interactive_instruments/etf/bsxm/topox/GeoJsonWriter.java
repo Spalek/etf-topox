@@ -24,11 +24,11 @@ import de.interactive_instruments.IFile;
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-public class GeoJsonWriter implements Closeable {
+public class GeoJsonWriter implements Closeable, Externalizable {
 
-	private final BufferedWriter writer;
+	private BufferedWriter writer;
 	private final static String initalStructure = "{\"type\":\"FeatureCollection\",\"features\":[";
-	private final IFile file;
+	private IFile file;
 	private int previousHash;
 
 	enum WritingMode {
@@ -50,6 +50,8 @@ public class GeoJsonWriter implements Closeable {
 		this.writer = new BufferedWriter(new FileWriter(file));
 		previousHash = 0;
 	}
+
+	public GeoJsonWriter() {}
 
 	public IFile getFile() {
 		return this.file;
@@ -221,5 +223,15 @@ public class GeoJsonWriter implements Closeable {
 		writer.write("]}");
 		writer.close();
 		mode = WritingMode.DONE;
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeObject(file);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.file = (IFile) in.readObject();
 	}
 }

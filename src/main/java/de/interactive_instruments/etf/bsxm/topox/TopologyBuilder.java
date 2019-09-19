@@ -19,7 +19,12 @@ import static de.interactive_instruments.etf.bsxm.topox.TopologyErrorType.*;
 import static java.lang.Math.abs;
 import static java.lang.Math.atan2;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.interactive_instruments.container.Pair;
@@ -33,7 +38,7 @@ import gnu.trove.*;
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-public class TopologyBuilder implements HashingSegmentHandler {
+public class TopologyBuilder implements HashingSegmentHandler, Externalizable {
 
 	/**
 	 * Coordinates
@@ -41,7 +46,7 @@ public class TopologyBuilder implements HashingSegmentHandler {
 	 * Array containing coordinates referenced from the topology edges.
 	 * First index is the X, second one always the Y coordinate.
 	 */
-	private final TDoubleArrayList coordinates;
+	private TDoubleArrayList coordinates;
 
 	/**
 	 * ID of the current geometry
@@ -61,7 +66,7 @@ public class TopologyBuilder implements HashingSegmentHandler {
 	 * The data store is very fast but it can not handle collisions
 	 * due to the use of a primitive data type.
 	 */
-	private final TLongIntHashMap coordinateHashToEdgeMap;
+	private TLongIntHashMap coordinateHashToEdgeMap;
 
 	/**
 	 * Secondary map for handling collisions. Uses more heap space
@@ -69,7 +74,7 @@ public class TopologyBuilder implements HashingSegmentHandler {
 	 *
 	 * Todo consider using a rehash mechanism when collisions are detected
 	 */
-	private final Map<Coordinate, Integer> coordinateCollisionHashToEdgeMap = new HashMap<>();
+	private Map<Coordinate, Integer> coordinateCollisionHashToEdgeMap = new HashMap<>();
 	private int errors = 0;
 
 	/**
@@ -77,7 +82,7 @@ public class TopologyBuilder implements HashingSegmentHandler {
 	 *
 	 * For the lookup, the hash of the two string coordinate hashes are used.
 	 */
-	private final TLongHashSet edgeExistence;
+	private TLongHashSet edgeExistence;
 
 	/**
 	 * Topological Data Structure
@@ -119,7 +124,7 @@ public class TopologyBuilder implements HashingSegmentHandler {
 	 * The order of the array values are optimized for edge creation
 	 *
 	 */
-	private final TLongArrayList topology;
+	private TLongArrayList topology;
 
 	// Offset for the index reference of the X coordinate in the coordinates array.
 	// Y is at position + 1
@@ -157,10 +162,10 @@ public class TopologyBuilder implements HashingSegmentHandler {
 	private int previousTargetCoordinateIndex;
 
 	// Collector object for errors
-	private final TopologyErrorCollector errorCollector;
+	private TopologyErrorCollector errorCollector;
 
 	// Name of the toplogy name
-	final String themeName;
+	String themeName;
 
 	// surface boundary
 	private boolean exterior;
@@ -197,6 +202,8 @@ public class TopologyBuilder implements HashingSegmentHandler {
 
 		this.coordinateHashToEdgeMap = new TLongIntHashMap((int) (coordinateArrSize / 2));
 	}
+
+	public TopologyBuilder() {}
 
 	private final static class Coordinate extends Pair<Double, Double> {
 
@@ -1173,5 +1180,43 @@ public class TopologyBuilder implements HashingSegmentHandler {
 
 	int internalGetLookupErrors() {
 		return errors;
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeObject(coordinates);
+		out.writeInt(objectId);
+		out.writeInt(objectsProcessed);
+		out.writeObject(coordinateHashToEdgeMap);
+		out.writeInt(errors);
+		out.writeObject(edgeExistence);
+		out.writeObject(topology);
+		out.writeInt(previousEdgeIndex);
+		out.writeInt(previousTargetCoordinateIndex);
+		out.writeObject(errorCollector);
+		out.writeUTF(themeName);
+		out.writeBoolean(exterior);
+		out.writeDouble(previousX);
+		out.writeDouble(previousY);
+		out.writeLong(previousHash);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.coordinates = (TDoubleArrayList) in.readObject();
+		this.objectId = in.readInt();
+		this.objectsProcessed = in.readInt();
+		this.coordinateHashToEdgeMap = (TLongIntHashMap) in.readObject();
+		this.errors = in.readInt();
+		this.edgeExistence = (TLongHashSet) in.readObject();
+		this.topology = (TLongArrayList) in.readObject();
+		this.previousEdgeIndex = in.readInt();
+		this.previousTargetCoordinateIndex = in.readInt();
+		this.errorCollector = (TopologyErrorCollector) in.readObject();
+		this.themeName = in.readUTF();
+		this.exterior = in.readBoolean();
+		this.previousX = in.readDouble();
+		this.previousY = in.readDouble();
+		this.previousHash = in.readLong();
 	}
 }

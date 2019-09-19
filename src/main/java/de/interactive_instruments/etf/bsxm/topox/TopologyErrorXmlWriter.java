@@ -15,6 +15,15 @@
  */
 package de.interactive_instruments.etf.bsxm.topox;
 
+import java.io.Externalizable;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
+import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
@@ -27,18 +36,28 @@ import gnu.trove.TLongIntHashMap;
  *
  * @author Jon Herrmann ( herrmann aT interactive-instruments doT de )
  */
-public class TopologyErrorXmlWriter implements TopologyErrorCollector {
+public class TopologyErrorXmlWriter implements TopologyErrorCollector, Externalizable {
 
 	private static final String TOPOX_ERROR_NS = "http://www.interactive-instruments.de/etf/topology-error/1.0";
 	private static final String TOPOX_ERROR_NS_PREFIX = "ete";
-	private final String themeName;
-	private final XMLStreamWriter writer;
+	private String themeName;
+	private File errorOutputFile;
+	private XMLStreamWriter writer;
 	private int counter = 0;
-	private final TLongIntHashMap coordinateHashToPreviousErrorId;
+	private TLongIntHashMap coordinateHashToPreviousErrorId;
+
+	public TopologyErrorXmlWriter() throws FileNotFoundException, XMLStreamException {}
 
 	public TopologyErrorXmlWriter(final String themeName, final XMLStreamWriter writer) {
 		this.themeName = themeName;
 		this.writer = writer;
+		this.coordinateHashToPreviousErrorId = new TLongIntHashMap(128);
+	}
+
+	public TopologyErrorXmlWriter(final String themeName, final XMLStreamWriter writer, final File errorOutputFile) {
+		this.themeName = themeName;
+		this.writer = writer;
+		this.errorOutputFile = errorOutputFile;
 		this.coordinateHashToPreviousErrorId = new TLongIntHashMap(128);
 	}
 
@@ -53,6 +72,18 @@ public class TopologyErrorXmlWriter implements TopologyErrorCollector {
 		} catch (final XMLStreamException e) {
 			throw new IllegalStateException("Initialization failed: ", e);
 		}
+	}
+
+	private XMLStreamWriter createWriter(String themeName, File errorOutputFile)
+			throws FileNotFoundException, XMLStreamException {
+		final XMLOutputFactory xof = XMLOutputFactory.newInstance();
+		final XMLStreamWriter streamWriter = xof.createXMLStreamWriter(new FileOutputStream(errorOutputFile), "UTF-8");
+		streamWriter.writeStartDocument("UTF-8", "1.0");
+		streamWriter.writeStartElement(TOPOX_ERROR_NS_PREFIX, "TopologicalErrors", TOPOX_ERROR_NS);
+		streamWriter.setPrefix(TOPOX_ERROR_NS_PREFIX, TOPOX_ERROR_NS);
+		streamWriter.writeNamespace(TOPOX_ERROR_NS_PREFIX, TOPOX_ERROR_NS);
+		streamWriter.writeAttribute("name", themeName);
+		return streamWriter;
 	}
 
 	@Override
@@ -132,6 +163,27 @@ public class TopologyErrorXmlWriter implements TopologyErrorCollector {
 			writer.close();
 		} catch (final XMLStreamException e) {
 			ExcUtils.suppress(e);
+		}
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		out.writeUTF(themeName);
+		out.writeObject(errorOutputFile);
+		out.writeInt(counter);
+		out.writeObject(coordinateHashToPreviousErrorId);
+	}
+
+	@Override
+	public void readExternal(final ObjectInput in) throws IOException, ClassNotFoundException {
+		this.themeName = in.readUTF();
+		this.errorOutputFile = (File) in.readObject();
+		this.counter = in.readInt();
+		this.coordinateHashToPreviousErrorId = (TLongIntHashMap) in.readObject();
+		try {
+			this.writer = (XMLStreamWriter) createWriter(this.themeName, this.errorOutputFile);
+		} catch (XMLStreamException e) {
+			e.printStackTrace();
 		}
 	}
 }
